@@ -24,6 +24,7 @@
             color: #5a2d51;
             position: relative;
             cursor: pointer;
+            background: linear-gradient(45deg, #ff9ecb, #8A4F7D);
         }
         
         /* Video de fondo */
@@ -37,6 +38,12 @@
             height: 100vh;
             object-fit: cover;
             z-index: -100;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        
+        #video-background.playing {
+            opacity: 1;
         }
         
         .video-placeholder {
@@ -55,12 +62,17 @@
             text-align: center;
             padding: 20px;
             cursor: pointer;
+            flex-direction: column;
         }
         
         .video-placeholder i {
             font-size: 3rem;
             margin-bottom: 15px;
             display: block;
+        }
+        
+        .video-placeholder.hidden {
+            display: none;
         }
         
         .overlay {
@@ -78,7 +90,7 @@
             width: 100%;
             max-width: 800px;
             z-index: 10;
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.85);
             padding: 30px;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -337,7 +349,7 @@
             gap: 10px;
             z-index: 100;
             background: rgba(255, 255, 255, 0.8);
-            padding: 10px;
+            padding: 10px 15px;
             border-radius: 30px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
@@ -387,11 +399,11 @@
         }
 
         /* Botón de reproducción manual */
-        .manual-play-btn {
+        .play-button {
             position: fixed;
             bottom: 80px;
             right: 20px;
-            background: linear-gradient(135deg, #8A4F7D 0%, #6B3FA0 100%);
+            background: linear-gradient(135deg, #8A4F7D, #6B3FA0);
             color: white;
             border: none;
             padding: 12px 20px;
@@ -514,7 +526,7 @@
             .video-controls {
                 bottom: 10px;
                 right: 10px;
-                padding: 8px;
+                padding: 8px 12px;
             }
             
             .control-btn {
@@ -527,7 +539,7 @@
                 width: 60px;
             }
 
-            .manual-play-btn {
+            .play-button {
                 bottom: 70px;
                 right: 10px;
                 padding: 10px 16px;
@@ -541,18 +553,18 @@
     <div class="video-placeholder" id="video-placeholder">
         <div>
             <i class="fas fa-play-circle"></i>
-            <p>Haz clic en cualquier lugar para reproducir el video</p>
+            <p>Haz clic para reproducir el video</p>
+            <p style="font-size: 1rem; margin-top: 10px;">(Es posible que necesites hacer clic directamente en el botón de reproducción)</p>
         </div>
     </div>
     <video id="video-background" muted loop playsinline>
         <source src="Álvaro-Díaz-Reina-Pepiada-Lyric-Video_1080.mp4" type="video/mp4">
-        <source src="SSvid.net-Álvaro-Díaz-Reina-Pepiada-Lyric-Video_720p_1.webm" type="video/webm">
         Tu navegador no soporta el elemento de video.
     </video>
     <div class="overlay"></div>
     
     <!-- Botón de reproducción manual -->
-    <button class="manual-play-btn" id="manual-play-btn">
+    <button class="play-button" id="play-button">
         <i class="fas fa-play"></i> Reproducir Video
     </button>
     
@@ -620,67 +632,90 @@
             const playPauseBtn = document.getElementById('play-pause-btn');
             const muteBtn = document.getElementById('mute-btn');
             const volumeSlider = document.getElementById('volume-slider');
-            const manualPlayBtn = document.getElementById('manual-play-btn');
+            const playButton = document.getElementById('play-button');
             let isOpen = false;
             let videoStarted = false;
             
             // Configurar volumen inicial
             videoBackground.volume = 0.5;
             
-            // Ocultar botón de reproducción manual inicialmente
-            manualPlayBtn.style.display = 'none';
-            
-            // Reproducir video al hacer clic en cualquier lugar
-            function startVideo() {
-                if (!videoStarted) {
+            // Función para reproducir video
+            function playVideo() {
+                if (videoBackground.paused) {
                     const playPromise = videoBackground.play();
                     
                     if (playPromise !== undefined) {
-                        playPromise.then(function() {
-                            videoPlaceholder.style.display = 'none';
+                        playPromise.then(() => {
+                            // Video reproducido con éxito
                             videoStarted = true;
-                            manualPlayBtn.style.display = 'none';
+                            videoBackground.classList.add('playing');
+                            videoPlaceholder.classList.add('hidden');
                             playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                        }).catch(function(error) {
-                            console.log('Error al reproducir el video:', error);
-                            manualPlayBtn.style.display = 'flex';
-                            videoPlaceholder.style.display = 'flex';
+                            playButton.style.display = 'none';
+                        }).catch(error => {
+                            // Error al reproducir
+                            console.error("Error al reproducir:", error);
+                            videoPlaceholder.innerHTML = '<div><i class="fas fa-exclamation-triangle"></i><p>Error al reproducir el video</p><p style="font-size: 0.9rem; margin-top: 10px;">Haz clic en el botón de reproducción</p></div>';
+                            playButton.style.display = 'flex';
                         });
                     }
                 }
             }
             
+            // Función para pausar video
+            function pauseVideo() {
+                videoBackground.pause();
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            }
+            
             // Configurar evento de clic en toda la página
             document.body.addEventListener('click', function() {
-                startVideo();
+                if (!videoStarted) {
+                    playVideo();
+                }
             });
             
             // Botón de reproducción manual
-            manualPlayBtn.addEventListener('click', function(e) {
+            playButton.addEventListener('click', function(e) {
                 e.stopPropagation();
-                startVideo();
+                playVideo();
             });
             
-            // También intentar reproducir automáticamente al cargar
-            setTimeout(function() {
-                const playPromise = videoBackground.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.then(function() {
-                        videoPlaceholder.style.display = 'none';
-                        videoStarted = true;
-                        manualPlayBtn.style.display = 'none';
-                    }).catch(function(error) {
-                        console.log('Autoplay bloqueado, mostrando placeholder y botón manual');
-                        videoPlaceholder.style.display = 'flex';
-                        manualPlayBtn.style.display = 'flex';
-                    });
+            // Controles de video
+            playPauseBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (videoBackground.paused) {
+                    playVideo();
+                } else {
+                    pauseVideo();
                 }
-            }, 1000);
+            });
+            
+            muteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                videoBackground.muted = !videoBackground.muted;
+                if (videoBackground.muted) {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                } else {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                }
+            });
+            
+            volumeSlider.addEventListener('input', function(e) {
+                e.stopPropagation();
+                videoBackground.volume = this.value;
+                if (this.value == 0) {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                    videoBackground.muted = true;
+                } else {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    videoBackground.muted = false;
+                }
+            });
             
             // Abrir/cerrar la carta al hacer clic
             envelopeWrapper.addEventListener('click', function(event) {
-                event.stopPropagation(); // Evitar que se propague y active el video
+                event.stopPropagation();
                 isOpen = !isOpen;
                 envelope.classList.toggle('open');
                 
@@ -707,58 +742,20 @@
                 e.stopPropagation();
             });
             
-            // Controles de video
-            playPauseBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // Evitar que se active el evento de clic general
-                if (videoBackground.paused) {
-                    videoBackground.play();
-                    playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                } else {
-                    videoBackground.pause();
-                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-                }
-            });
-            
-            muteBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // Evitar que se active el evento de clic general
-                videoBackground.muted = !videoBackground.muted;
-                if (videoBackground.muted) {
-                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-                } else {
-                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                }
-            });
-            
-            volumeSlider.addEventListener('input', function(e) {
-                e.stopPropagation(); // Evitar que se active el evento de clic general
-                videoBackground.volume = this.value;
-                if (this.value == 0) {
-                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-                    videoBackground.muted = true;
-                } else {
-                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                    videoBackground.muted = false;
-                }
-            });
-            
             // Crear corazones flotantes
             function createHearts() {
-                // Limpiar corazones existentes
                 heartsContainer.innerHTML = '';
                 
-                // Crear nuevos corazones
                 for (let i = 0; i < 20; i++) {
                     const heart = document.createElement('div');
                     heart.classList.add('floating-heart');
                     heart.innerHTML = '❤';
                     
-                    // Posición aleatoria
                     const left = Math.random() * 100;
                     heart.style.setProperty('--x', left);
                     heart.style.setProperty('--rotation', Math.random() * 60 - 30);
                     heart.style.left = left + 'vw';
                     
-                    // Duración y delay aleatorios
                     heart.style.animationDuration = (4 + Math.random() * 4) + 's';
                     heart.style.animationDelay = (Math.random() * 2) + 's';
                     
@@ -768,6 +765,13 @@
             
             // Iniciar con algunos corazones
             createHearts();
+
+            // Intentar reproducir automáticamente después de un retraso
+            setTimeout(() => {
+                if (!videoStarted) {
+                    playVideo();
+                }
+            }, 1000);
         });
     </script>
 </body>
