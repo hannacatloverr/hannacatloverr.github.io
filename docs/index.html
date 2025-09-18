@@ -337,7 +337,7 @@
             gap: 10px;
             z-index: 100;
             background: rgba(255, 255, 255, 0.8);
-            padding: 10px 15px;
+            padding: 10px;
             border-radius: 30px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
@@ -384,6 +384,25 @@
             border-radius: 50%;
             background: #8A4F7D;
             cursor: pointer;
+        }
+
+        /* Botón de reproducción manual */
+        .manual-play-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: linear-gradient(135deg, #8A4F7D 0%, #6B3FA0 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
         }
         
         /* Animaciones */
@@ -495,7 +514,7 @@
             .video-controls {
                 bottom: 10px;
                 right: 10px;
-                padding: 8px 12px;
+                padding: 8px;
             }
             
             .control-btn {
@@ -506,6 +525,13 @@
             
             .volume-slider {
                 width: 60px;
+            }
+
+            .manual-play-btn {
+                bottom: 70px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 14px;
             }
         }
     </style>
@@ -519,13 +545,16 @@
         </div>
     </div>
     <video id="video-background" muted loop playsinline>
-        <!-- Reemplaza "tu_video.mp4" con el nombre de tu archivo de video local -->
         <source src="Álvaro-Díaz-Reina-Pepiada-Lyric-Video_1080.mp4" type="video/mp4">
-        <!-- Agrega formatos alternativos para mejor compatibilidad -->
         <source src="SSvid.net-Álvaro-Díaz-Reina-Pepiada-Lyric-Video_720p_1.webm" type="video/webm">
         Tu navegador no soporta el elemento de video.
     </video>
     <div class="overlay"></div>
+    
+    <!-- Botón de reproducción manual -->
+    <button class="manual-play-btn" id="manual-play-btn">
+        <i class="fas fa-play"></i> Reproducir Video
+    </button>
     
     <!-- Controles de video -->
     <div class="video-controls">
@@ -591,24 +620,33 @@
             const playPauseBtn = document.getElementById('play-pause-btn');
             const muteBtn = document.getElementById('mute-btn');
             const volumeSlider = document.getElementById('volume-slider');
+            const manualPlayBtn = document.getElementById('manual-play-btn');
             let isOpen = false;
             let videoStarted = false;
             
             // Configurar volumen inicial
             videoBackground.volume = 0.5;
             
+            // Ocultar botón de reproducción manual inicialmente
+            manualPlayBtn.style.display = 'none';
+            
             // Reproducir video al hacer clic en cualquier lugar
             function startVideo() {
                 if (!videoStarted) {
-                    videoBackground.play().then(function() {
-                        videoPlaceholder.style.display = 'none';
-                        videoStarted = true;
-                        // Actualizar botón de play/pause
-                        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                    }).catch(function(error) {
-                        console.log('Error al reproducir el video:', error);
-                        videoPlaceholder.innerHTML = '<div><i class="fas fa-exclamation-triangle"></i><p>Error al reproducir el video</p><p style="font-size: 0.9rem; margin-top: 10px;">Pero el amor sigue intacto 💖</p></div>';
-                    });
+                    const playPromise = videoBackground.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(function() {
+                            videoPlaceholder.style.display = 'none';
+                            videoStarted = true;
+                            manualPlayBtn.style.display = 'none';
+                            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                        }).catch(function(error) {
+                            console.log('Error al reproducir el video:', error);
+                            manualPlayBtn.style.display = 'flex';
+                            videoPlaceholder.style.display = 'flex';
+                        });
+                    }
                 }
             }
             
@@ -617,15 +655,28 @@
                 startVideo();
             });
             
-            // También intentar reproducir automáticamente al cargar
-            videoBackground.play().then(function() {
-                videoPlaceholder.style.display = 'none';
-                videoStarted = true;
-            }).catch(function(error) {
-                console.log('Autoplay bloqueado, mostrando placeholder');
-                // Mostrar placeholder para que el usuario haga clic
-                videoPlaceholder.style.display = 'flex';
+            // Botón de reproducción manual
+            manualPlayBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                startVideo();
             });
+            
+            // También intentar reproducir automáticamente al cargar
+            setTimeout(function() {
+                const playPromise = videoBackground.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(function() {
+                        videoPlaceholder.style.display = 'none';
+                        videoStarted = true;
+                        manualPlayBtn.style.display = 'none';
+                    }).catch(function(error) {
+                        console.log('Autoplay bloqueado, mostrando placeholder y botón manual');
+                        videoPlaceholder.style.display = 'flex';
+                        manualPlayBtn.style.display = 'flex';
+                    });
+                }
+            }, 1000);
             
             // Abrir/cerrar la carta al hacer clic
             envelopeWrapper.addEventListener('click', function(event) {
